@@ -18,24 +18,24 @@ kotlin {
         }
     }
     jvm("desktop")
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "shared"
-            isStatic = true
-        }
-    }
-    js {
-        browser {
-            testTask(Action {
-                enabled = false
-            })
-        }
-        binaries.executable()
-    }
-
+//    listOf(
+//        iosArm64(),
+//        iosSimulatorArm64()
+//    ).forEach { iosTarget ->
+//        iosTarget.binaries.framework {
+//            baseName = "shared"
+//            isStatic = true
+//        }
+//    }
+//    js {
+//        browser {
+//            testTask(Action {
+//                enabled = false
+//            })
+//        }
+//        binaries.executable()
+//    }
+//
     listOf(
         macosArm64()
     ).forEach { macosTarget ->

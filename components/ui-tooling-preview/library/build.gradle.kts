@@ -19,17 +19,17 @@ kotlin {
             }
         }
     }
-    iosArm64()
-    iosSimulatorArm64()
-    js {
-        browser {
-        }
-    }
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser {
-        }
-    }
+//    iosArm64()
+//    iosSimulatorArm64()
+//    js {
+//        browser {
+//        }
+//    }
+//    @OptIn(ExperimentalWasmDsl::class)
+//    wasmJs {
+//        browser {
+//        }
+//    }
     macosArm64()
 
     applyDefaultHierarchyTemplate()
@@ -51,11 +51,11 @@ kotlin {
         val desktopMain by getting
         desktopMain.dependsOn(nonAndroidMain)
 
-        val jsMain by getting
-        jsMain.dependsOn(nonAndroidMain)
-
-        val wasmJsMain by getting
-        wasmJsMain.dependsOn(nonAndroidMain)
+//        val jsMain by getting
+//        jsMain.dependsOn(nonAndroidMain)
+//
+//        val wasmJsMain by getting
+//        wasmJsMain.dependsOn(nonAndroidMain)
     }
 }
 

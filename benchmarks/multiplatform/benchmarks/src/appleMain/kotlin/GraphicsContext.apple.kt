@@ -8,6 +8,8 @@ import org.jetbrains.skia.Surface
 import org.jetbrains.skia.SurfaceColorFormat
 import org.jetbrains.skia.SurfaceOrigin
 import org.jetbrains.skia.SurfaceProps
+import org.jetbrains.skia.graphite.BackendTexture
+import org.jetbrains.skia.graphite.Recorder
 import platform.Metal.MTLCreateSystemDefaultDevice
 import platform.Metal.MTLPixelFormatBGRA8Unorm
 import platform.Metal.MTLTextureDescriptor
@@ -59,7 +61,50 @@ fun graphicsContext() = object : GraphicsContext {
         }
     }
 }
-
+//fun graphicsContext() = object : GraphicsContext {
+//    private val device = MTLCreateSystemDefaultDevice() ?: throw IllegalStateException("Can't create MTLDevice")
+//    private val commandQueue = device.newCommandQueue() ?: throw IllegalStateException("Can't create MTLCommandQueue")
+//    private val directContext = DirectContext.makeGraphiteMetal(device.objcPtr(), commandQueue.objcPtr())
+//
+//    private val recorder = Recorder.makeFromGraphiteContext(directContext).also {
+//        directContext.recorder = it
+//    }
+//
+//    override fun surface(width: Int, height: Int): Surface {
+//        val descriptor = MTLTextureDescriptor()
+//        descriptor.width = width.toULong()
+//        descriptor.height = height.toULong()
+//        descriptor.usage = MTLTextureUsageShaderRead or MTLTextureUsageShaderWrite or MTLTextureUsageRenderTarget
+//        descriptor.textureType = MTLTextureType2D
+//        descriptor.pixelFormat = MTLPixelFormatBGRA8Unorm
+//        descriptor.mipmapLevelCount = 1UL
+//        val texture = device.newTextureWithDescriptor(descriptor) ?: throw IllegalStateException("Can't create MTLTexture")
+//
+//        val backendTexture = BackendTexture.wrapMetalTexture(texture.objcPtr(), width, height)
+//
+//        return Surface.makeFromBackendTexture(
+//            recorder,
+//            backendTexture,
+//            SurfaceColorFormat.BGRA_8888,
+//            ColorSpace.sRGB,
+//            SurfaceProps(pixelGeometry = PixelGeometry.UNKNOWN)
+//        ) ?: throw IllegalStateException("Cannot create surface")
+//
+//    }
+//
+//    override suspend fun awaitGPUCompletion() {
+//        val commandBuffer = commandQueue.commandBuffer() ?: return
+//
+//        suspendCoroutine { continuation ->
+//            commandBuffer.addCompletedHandler {
+//                continuation.resume(Unit)
+//            }
+//
+//            commandBuffer.commit()
+//        }
+//    }
+//}
+//
 
 
 

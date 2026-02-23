@@ -1,6 +1,6 @@
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+//import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpack
-import org.jetbrains.kotlin.gradle.targets.wasm.d8.D8Exec
+//import org.jetbrains.kotlin.gradle.targets.wasm.d8.D8Exec
 import kotlin.text.replace
 
 plugins {
@@ -23,7 +23,7 @@ kotlin {
     jvm("desktop")
 
     listOf(
-        iosX64(),
+//        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
@@ -34,7 +34,7 @@ kotlin {
     }
 
     listOf(
-        macosX64(),
+//        macosX64(),
         macosArm64()
     ).forEach { macosTarget ->
         macosTarget.binaries {
@@ -44,28 +44,28 @@ kotlin {
         }
     }
 
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        binaries.executable()
-        d8 {
-            compilerOptions.freeCompilerArgs.add("-Xwasm-attach-js-exception")
-            runTask {
-                // It aborts even on coroutine cancellation exceptions:
-                // d8Args.add("--abort-on-uncaught-exception")
-            }
-        }
-        browser()
-
-        binaries.configureEach {
-            compilation.compileTaskProvider.configure {
-                compilerOptions {
-                    freeCompilerArgs.apply {
-                        add("-Xwasm-use-new-exception-proposal")
-                    }
-                }
-            }
-        }
-    }
+//    @OptIn(ExperimentalWasmDsl::class)
+//    wasmJs {
+//        binaries.executable()
+//        d8 {
+//            compilerOptions.freeCompilerArgs.add("-Xwasm-attach-js-exception")
+//            runTask {
+//                // It aborts even on coroutine cancellation exceptions:
+//                // d8Args.add("--abort-on-uncaught-exception")
+//            }
+//        }
+//        browser()
+//
+//        binaries.configureEach {
+//            compilation.compileTaskProvider.configure {
+//                compilerOptions {
+//                    freeCompilerArgs.apply {
+//                        add("-Xwasm-use-new-exception-proposal")
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     sourceSets {
         val commonMain by getting {
@@ -97,13 +97,13 @@ kotlin {
             }
         }
 
-        val wasmJsMain by getting {
-            dependencies {
-                implementation(libs.ktor.client.js)
-                implementation(libs.ktor.client.content.negotiation)
-                implementation(libs.ktor.serialization.kotlinx.json)
-            }
-        }
+//        val wasmJsMain by getting {
+//            dependencies {
+//                implementation(libs.ktor.client.js)
+//                implementation(libs.ktor.client.content.negotiation)
+//                implementation(libs.ktor.serialization.kotlinx.json)
+//            }
+//        }
     }
 }
 
@@ -139,33 +139,33 @@ gradle.taskGraph.whenReady {
             t.args(appArgs)
         }
     }
-    tasks.named<KotlinWebpack>("wasmJsBrowserProductionRun") {
-        val args = appArgs
-            .mapIndexed { index, arg -> "arg$index=$arg" }
-            .joinToString("&")
+//    tasks.named<KotlinWebpack>("wasmJsBrowserProductionRun") {
+//        val args = appArgs
+//            .mapIndexed { index, arg -> "arg$index=$arg" }
+//            .joinToString("&")
+//
+//        devServerProperty = devServerProperty.get().copy(
+//            open = "http://localhost:8080?$args"
+//        )
+//    }
 
-        devServerProperty = devServerProperty.get().copy(
-            open = "http://localhost:8080?$args"
-        )
-    }
-
-    @OptIn(ExperimentalWasmDsl::class)
-    tasks.withType<D8Exec>().configureEach {
-        inputFileProperty.set(rootProject.layout.buildDirectory.file(
-            "wasm/packages/compose-benchmarks-benchmarks/kotlin/launcher.mjs")
-        )
-
-        args(appArgs)
-    }
+//    @OptIn(ExperimentalWasmDsl::class)
+//    tasks.withType<D8Exec>().configureEach {
+//        inputFileProperty.set(rootProject.layout.buildDirectory.file(
+//            "wasm/packages/compose-benchmarks-benchmarks/kotlin/launcher.mjs")
+//        )
+//
+//        args(appArgs)
+//    }
 }
 
 
-tasks.register("buildD8Distribution", Zip::class.java) {
-    dependsOn("wasmJsProductionExecutableCompileSync")
-    from(rootProject.layout.buildDirectory.file("wasm/packages/compose-benchmarks-benchmarks/kotlin"))
-    archiveFileName.set("d8-distribution.zip")
-    destinationDirectory.set(rootProject.layout.buildDirectory.dir("distributions"))
-}
+//tasks.register("buildD8Distribution", Zip::class.java) {
+//    dependsOn("wasmJsProductionExecutableCompileSync")
+//    from(rootProject.layout.buildDirectory.file("wasm/packages/compose-benchmarks-benchmarks/kotlin"))
+//    archiveFileName.set("d8-distribution.zip")
+//    destinationDirectory.set(rootProject.layout.buildDirectory.dir("distributions"))
+//}
 
 tasks.register("runBrowserAndSaveStats") {
     fun printProcessOutput(inputStream: java.io.InputStream) {
@@ -192,8 +192,8 @@ tasks.register("runBrowserAndSaveStats") {
             serverProcess = runCommand("./gradlew", "benchmarks:run",
                 "-PrunArguments=runServer=true saveStatsToJSON=true")
 
-            clientProcess = runCommand("./gradlew", "benchmarks:wasmJsBrowserProductionRun",
-                "-PrunArguments=$runArguments saveStatsToJSON=true")
+//            clientProcess = runCommand("./gradlew", "benchmarks:wasmJsBrowserProductionRun",
+//                "-PrunArguments=$runArguments saveStatsToJSON=true")
 
             serverProcess.waitFor()
         } catch (e: Throwable) {
@@ -205,16 +205,16 @@ tasks.register("runBrowserAndSaveStats") {
     }
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.targets.wasm.binaryen.BinaryenExec>().configureEach {
-    binaryenArgs.add("-g") // keep the readable names
-}
+//tasks.withType<org.jetbrains.kotlin.gradle.targets.wasm.binaryen.BinaryenExec>().configureEach {
+//    binaryenArgs.add("-g") // keep the readable names
+//}
+//
+//@OptIn(ExperimentalWasmDsl::class)
+//project.the<org.jetbrains.kotlin.gradle.targets.wasm.binaryen.BinaryenEnvSpec>().apply {
+//    // version = "122" // change only if needed
+//}
 
-@OptIn(ExperimentalWasmDsl::class)
-project.the<org.jetbrains.kotlin.gradle.targets.wasm.binaryen.BinaryenEnvSpec>().apply {
-    // version = "122" // change only if needed
-}
-
-val jsOrWasmRegex = Regex("js|wasm")
+//val jsOrWasmRegex = Regex("js|wasm")
 
 // not needed for now
 /*
@@ -226,6 +226,5 @@ configurations.all {
             // to keep the readable names from Skiko
             useVersion(requested.version!! + "+profiling")
         }
-    }
-}
-*/
+    }*/
+//}

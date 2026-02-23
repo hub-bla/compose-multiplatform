@@ -1,5 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+//import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     kotlin("multiplatform")
@@ -19,33 +19,33 @@ kotlin {
         }
     }
     jvm("desktop")
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "shared"
-            isStatic = true
-        }
-    }
-    js {
-        browser {
-            testTask(Action {
-                enabled = false
-            })
-        }
-        binaries.executable()
-    }
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-        binaries.executable()
-    }
+//    listOf(
+////        iosArm64(),
+////        iosSimulatorArm64()
+//    ).forEach { iosTarget ->
+//        iosTarget.binaries.framework {
+//            baseName = "shared"
+//            isStatic = true
+//        }
+//    }
+//    js {
+//        browser {
+//            testTask(Action {
+//                enabled = false
+//            })
+//        }
+//        binaries.executable()
+//    }
+//    @OptIn(ExperimentalWasmDsl::class)
+//    wasmJs {
+//        browser()
+//        binaries.executable()
+//    }
 
     applyDefaultHierarchyTemplate()
     sourceSets {
         val desktopMain by getting
-        val wasmJsMain by getting
+//        val wasmJsMain by getting
 
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -63,10 +63,10 @@ kotlin {
 
         val nonAndroidMain by creating {
             dependsOn(commonMain.get())
-            wasmJsMain.dependsOn(this)
+//            wasmJsMain.dependsOn(this)
             desktopMain.dependsOn(this)
             nativeMain.get().dependsOn(this)
-            jsMain.get().dependsOn(this)
+//            jsMain.get().dependsOn(this)
         }
     }
 }

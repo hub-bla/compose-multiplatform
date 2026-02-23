@@ -1,6 +1,6 @@
 import kotlinx.validation.ExperimentalBCVApi
 import org.jetbrains.compose.ExperimentalComposeLibrary
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+//import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -24,32 +24,32 @@ kotlin {
             }
         }
     }
-    iosArm64()
-    iosSimulatorArm64()
-    js {
-        browser {
-            testTask(Action {
-                enabled = false
-            })
-        }
-    }
-
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        compilations.getByName("test").compileTaskProvider.configure {
-            // https://youtrack.jetbrains.com/issue/KT-69014
-            compilerOptions.freeCompilerArgs.add("-Xwasm-enable-array-range-checks")
-        }
-        browser {
-            testTask(Action {
-                useKarma {
-                    useChromeHeadless()
-                    useConfigDirectory(project.projectDir.resolve("karma.config.d").resolve("wasm"))
-                }
-            })
-        }
-        binaries.executable()
-    }
+//    iosArm64()
+//    iosSimulatorArm64()
+//    js {
+//        browser {
+//            testTask(Action {
+//                enabled = false
+//            })
+//        }
+//    }
+//
+//    @OptIn(ExperimentalWasmDsl::class)
+//    wasmJs {
+//        compilations.getByName("test").compileTaskProvider.configure {
+//             https://youtrack.jetbrains.com/issue/KT-69014
+//            compilerOptions.freeCompilerArgs.add("-Xwasm-enable-array-range-checks")
+//        }
+//        browser {
+//            testTask(Action {
+//                useKarma {
+//                    useChromeHeadless()
+//                    useConfigDirectory(project.projectDir.resolve("karma.config.d").resolve("wasm"))
+//                }
+//            })
+//        }
+//        binaries.executable()
+//    }
     macosArm64()
 
     applyDefaultHierarchyTemplate()
@@ -144,27 +144,27 @@ kotlin {
             dependsOn(skikoTest)
             dependsOn(blockingTest)
         }
-        val webMain by getting {
-            dependsOn(skikoMain)
-            dependencies {
-                 implementation(libs.kotlinx.browser)
-            }
-        }
-        val jsMain by getting {
-            dependsOn(webMain)
-        }
-        val wasmJsMain by getting {
-            dependsOn(webMain)
-        }
-        val webTest by getting {
-            dependsOn(skikoTest)
-        }
-        val jsTest by getting {
-            dependsOn(webTest)
-        }
-        val wasmJsTest by getting {
-            dependsOn(webTest)
-        }
+//        val webMain by getting {
+//            dependsOn(skikoMain)
+//            dependencies {
+//                 implementation(libs.kotlinx.browser)
+//            }
+//        }
+//        val jsMain by getting {
+//            dependsOn(webMain)
+//        }
+//        val wasmJsMain by getting {
+//            dependsOn(webMain)
+//        }
+//        val webTest by getting {
+//            dependsOn(skikoTest)
+//        }
+//        val jsTest by getting {
+//            dependsOn(webTest)
+//        }
+//        val wasmJsTest by getting {
+//            dependsOn(webTest)
+//        }
     }
 }
 
