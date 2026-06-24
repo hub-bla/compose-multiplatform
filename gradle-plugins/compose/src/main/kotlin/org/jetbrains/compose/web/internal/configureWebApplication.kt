@@ -11,7 +11,9 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ResolvedDependency
 import org.gradle.api.artifacts.UnresolvedDependency
+import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.file.FileCollection
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Copy
@@ -79,6 +81,7 @@ internal fun configureWebApplication(
         it.addLater(skikoJsWasmRuntimeDependency)
     }
 
+    val explicitSkikoJsWasmRuntimeFiles = project.explicitSkikoJsWasmRuntimeFiles(targets)
     val unpackedRuntimeDir = project.layout.buildDirectory.dir("compose/skiko-for-web-runtime")
     val processedRuntimeDir = project.layout.buildDirectory.dir("compose/skiko-runtime-processed-wasmjs")
     val taskName = "unpackSkikoWasmRuntime"
@@ -88,7 +91,7 @@ internal fun configureWebApplication(
             shouldRunUnpackSkiko.get()
         }
 
-        skikoRuntimeFiles = skikoJsWasmRuntimeConfiguration
+        skikoRuntimeFiles = project.files(skikoJsWasmRuntimeConfiguration, explicitSkikoJsWasmRuntimeFiles)
         outputDir.set(unpackedRuntimeDir)
     }
 
@@ -201,6 +204,29 @@ private fun Project.testCompilationDependsOnSkiko(target: KotlinJsIrTarget): Boo
 }
 
 private const val SKIKO_GROUP = "org.jetbrains.skiko"
+
+private fun Project.explicitSkikoJsWasmRuntimeFiles(
+    targets: Collection<KotlinJsIrTarget>
+): FileCollection {
+    val artifactViews = targets.asSequence()
+        .map { target ->
+            val compilation = target.compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME)
+            configurations.getByName(compilation.runtimeDependencyConfigurationName)
+        }
+        .map { configuration ->
+            configuration.incoming.artifactView { view ->
+                view.componentFilter(::isExplicitSkikoJsWasmRuntimeComponent)
+            }
+        }
+        .toList()
+    return files(artifactViews.map { it.files })
+}
+
+private fun isExplicitSkikoJsWasmRuntimeComponent(identifier: ComponentIdentifier): Boolean =
+    identifier is ModuleComponentIdentifier &&
+            identifier.group == SKIKO_GROUP &&
+            identifier.module.startsWith("skiko") &&
+            identifier.module.endsWith("-js-wasm-runtime")
 
 private fun skikoVersionProvider(project: Project): Provider<String> {
     val composeVersion = ComposeBuildConfig.composeVersion
