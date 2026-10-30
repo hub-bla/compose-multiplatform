@@ -7,6 +7,7 @@ package org.jetbrains.compose.desktop.application.internal
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.Sync
@@ -45,6 +46,7 @@ internal class CommonJvmDesktopTasks(
     val checkRuntime: TaskProvider<AbstractCheckNativeDistributionRuntime>,
     val suggestRuntimeModules: TaskProvider<AbstractSuggestModulesTask>,
     val prepareAppResources: TaskProvider<Sync>,
+    val skikoModule: TaskProvider<AbstractPrepareSkikoModuleTask>,
 )
 
 private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDesktopTasks {
@@ -94,17 +96,48 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
         into(jvmTmpDirForTask())
     }
 
+    val skikoModule = registerSkikoModuleTask()
+
     return CommonJvmDesktopTasks(
         unpackDefaultResources = unpackDefaultResources,
         checkRuntime = checkRuntime,
         suggestRuntimeModules = suggestRuntimeModules,
         prepareAppResources = prepareAppResources,
+        skikoModule = skikoModule,
     )
 }
 
 private fun JvmApplicationContext.configurePackagingTasks(
     commonTasks: CommonJvmDesktopTasks
 ) {
+    val runProguard = if (buildType.proguard.isEnabled.orNull == true) {
+        tasks.register<AbstractProguardTask>(taskNameAction = "proguard", taskNameObject = "Jars") {
+            configureProguardTask(this, commonTasks.unpackDefaultResources)
+            useAppRuntimeFiles { files ->
+                separateOutputJars.from(files.skikoJars)
+                separateOutputJars.from(files.allRuntimeJars.filter { hasModuleDescriptor(it) })
+            }
+        }
+    } else null
+    val skikoModule = if (runProguard != null) {
+        registerSkikoModuleTask("ProcessedSkikoModule").apply {
+            configure {
+                it.processedJars.from(runProguard.flatMap { task -> task.destinationDir }.map { directory -> directory.asFileTree })
+                it.proguardMapping.set(runProguard.flatMap { task -> task.mappingFile })
+            }
+        }
+    } else commonTasks.skikoModule
+
+    val joinedApplicationJar = if (runProguard != null && buildType.proguard.joinOutputJars.orNull == true) {
+        tasks.register<AbstractJarsFlattenTask>(taskNameAction = "join", taskNameObject = "applicationJars") {
+            dependsOn(skikoModule)
+            inputFiles.from(skikoModule.withoutModuleInputs(project.files(
+                runProguard.flatMap { it.destinationDir }.map { it.asFileTree }
+            )))
+            flattenedJar.set(appTmpDir.file("joined-application/application.jar"))
+        }.flatMap { it.flattenedJar }
+    } else null
+
     val createRuntimeImage = tasks.register<AbstractJLinkTask>(
         taskNameAction = "create",
         taskNameObject = "runtimeImage"
@@ -114,20 +147,15 @@ private fun JvmApplicationContext.configurePackagingTasks(
         modules.set(provider { app.nativeDistributions.modules })
         includeAllModules.set(provider { app.nativeDistributions.includeAllModules })
         javaRuntimePropertiesFile.set(commonTasks.checkRuntime.flatMap { it.javaRuntimePropertiesFile })
+        skikoModule.let { module ->
+            modulePath.from(module.flatMap { it.destinationDir }.map { it.asFileTree })
+            runtimeJvmArgs.set(module.runtimeJvmArgs())
+        }
         stripJreFonts.set(app.nativeDistributions.stripJreFonts)
         destinationDir.set(appTmpDir.dir("runtime"))
         stripNativeCommands.set(!buildType.aot.mode.generateJreClassesArchive)  // `java` is needed to generate the JRE CDS archive
         generateJreCdsArchive.set(buildType.aot.mode.generateJreClassesArchive)
     }
-
-    val runProguard = if (buildType.proguard.isEnabled.orNull == true) {
-        tasks.register<AbstractProguardTask>(
-            taskNameAction = "proguard",
-            taskNameObject = "Jars"
-        ) {
-            configureProguardTask(this, commonTasks.unpackDefaultResources)
-        }
-    } else null
 
     val createDistributableImpl = tasks.register<AbstractJPackageTask>(
         taskNameAction = "create",
@@ -141,7 +169,8 @@ private fun JvmApplicationContext.configurePackagingTasks(
             prepareAppResources = commonTasks.prepareAppResources,
             checkRuntime = commonTasks.checkRuntime,
             unpackDefaultResources = commonTasks.unpackDefaultResources,
-            runProguard = runProguard
+            runProguard = runProguard,
+            joinedApplicationJar = joinedApplicationJar
         )
     }
 
@@ -289,7 +318,8 @@ private fun JvmApplicationContext.configurePackageTask(
     prepareAppResources: TaskProvider<Sync>? = null,
     checkRuntime: TaskProvider<AbstractCheckNativeDistributionRuntime>? = null,
     unpackDefaultResources: TaskProvider<AbstractUnpackDefaultComposeApplicationResourcesTask>,
-    runProguard: Provider<AbstractProguardTask>? = null
+    runProguard: Provider<AbstractProguardTask>? = null,
+    joinedApplicationJar: Provider<RegularFile>? = null
 ) {
     packageTask.enabled = packageTask.targetFormat.isCompatibleWithCurrentOS
 
@@ -332,8 +362,13 @@ private fun JvmApplicationContext.configurePackageTask(
 
     if (runProguard != null) {
         packageTask.dependsOn(runProguard)
-        packageTask.files.from(project.fileTree(runProguard.flatMap { it.destinationDir }))
-        packageTask.launcherMainJar.set(runProguard.flatMap { it.mainJarInDestinationDir })
+        if (joinedApplicationJar != null) {
+            packageTask.files.from(joinedApplicationJar)
+            packageTask.launcherMainJar.set(joinedApplicationJar)
+        } else {
+            packageTask.files.from(project.fileTree(runProguard.flatMap { it.destinationDir }))
+            packageTask.launcherMainJar.set(runProguard.flatMap { it.mainJarInDestinationDir })
+        }
         packageTask.mangleJarFilesNames.set(false)
         packageTask.packageFromUberJar.set(runProguard.flatMap { it.joinOutputJars })
     } else {
@@ -343,6 +378,12 @@ private fun JvmApplicationContext.configurePackageTask(
         }
     }
 
+    skikoModuleTask().let { module ->
+        packageTask.dependsOn(module)
+        packageTask.files.from(module.flatMap { it.nativeLibrariesDir }.map { it.asFileTree })
+        val originalFiles = project.files(packageTask.files.from.toList())
+        packageTask.files.setFrom(module.withoutModuleInputs(originalFiles))
+    }
     packageTask.launcherMainClass.set(nullableProvider { app.mainClass })
     packageTask.launcherJvmArgs.set(
         provider { defaultJvmArgs + buildType.aot.runtimeJvmArgs + app.jvmArgs }
@@ -455,6 +496,12 @@ private fun JvmApplicationContext.configureRunTask(
         exec.useAppRuntimeFiles { (runtimeJars, _) ->
             classpath = runtimeJars
         }
+    }
+    skikoModuleTask().let { module ->
+        exec.dependsOn(module)
+        val originalClasspath = exec.classpath
+        exec.classpath = module.withoutModuleInputs(originalClasspath)
+        exec.jvmArgumentProviders.add(SkikoModuleArguments(project.files(module.flatMap { it.destinationDir }.map { it.asFileTree })))
     }
 }
 

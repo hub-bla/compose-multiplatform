@@ -26,6 +26,9 @@ abstract class AbstractProguardTask : AbstractComposeDesktopTask() {
     @get:Classpath
     val inputFiles: ConfigurableFileCollection = objects.fileCollection()
 
+    @get:Classpath
+    val separateOutputJars: ConfigurableFileCollection = objects.fileCollection()
+
     @get:InputFile
     @get:Classpath
     val mainJar: RegularFileProperty = objects.fileProperty()
@@ -81,6 +84,11 @@ abstract class AbstractProguardTask : AbstractComposeDesktopTask() {
     @get:LocalState
     protected val workingDir: Provider<Directory> = project.layout.buildDirectory.dir("compose/tmp/$name")
 
+    @get:OutputFile
+    val mappingFile: RegularFileProperty = objects.fileProperty().convention(
+        project.layout.buildDirectory.file("compose/mappings/$name.map")
+    )
+
     private val rootConfigurationFile = workingDir.map { it.file("root-config.pro") }
 
     private val jarsConfigurationFile = workingDir.map { it.file("jars-config.pro") }
@@ -88,6 +96,7 @@ abstract class AbstractProguardTask : AbstractComposeDesktopTask() {
     @TaskAction
     fun execute() {
         val javaHome = File(javaHome.get())
+        mappingFile.ioFile.apply { parentFile.mkdirs(); writeText("") }
 
         fileOperations.clearDirs(destinationDir, workingDir)
         val destinationDir = destinationDir.ioFile.absoluteFile
@@ -110,9 +119,9 @@ abstract class AbstractProguardTask : AbstractComposeDesktopTask() {
 
         jarsConfigurationFile.ioFile.bufferedWriter().use { writer ->
             val toSingleOutputJar = joinOutputJars.orNull == true
-            for ((input, output) in inputToOutputJars.entries) {
+            for ((input, output) in inputToOutputJars.entries.sortedBy { if (it.key in separateOutputJars.files) 0 else 1 }) {
                 writer.writeLn("-injars '${input.normalizedPath()}'")
-                if (!toSingleOutputJar)
+                if (!toSingleOutputJar || input in separateOutputJars.files)
                     writer.writeLn("-outjars '${output.normalizedPath()}'")
             }
             if (toSingleOutputJar)
@@ -124,6 +133,7 @@ abstract class AbstractProguardTask : AbstractComposeDesktopTask() {
         }
 
         rootConfigurationFile.ioFile.bufferedWriter().use { writer ->
+            writer.writeLn("-printmapping '${mappingFile.ioFile.normalizedPath()}'")
             if (dontobfuscate.orNull == true) {
                 writer.writeLn("-dontobfuscate")
             }
